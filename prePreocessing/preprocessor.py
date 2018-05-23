@@ -19,7 +19,7 @@ class preprocessor:
 
 
     def normalize()
-        
+         
 
     def preprocess(self, data)
         mat = data  
