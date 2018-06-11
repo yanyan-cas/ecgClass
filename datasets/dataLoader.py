@@ -14,7 +14,7 @@ class dataLoader
         if self.preprocessor = None
             self.preprocessor = []
 
-    def serachDir(filepath):
+    def serachDir(self, filepath):
         pathDir = os.listdir(filepath)
         for allDir in pathDir:
             child = os.path.join('%s%s' % (filepath, allDir))
