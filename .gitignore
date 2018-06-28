@@ -1,0 +1,17 @@
+ ##filter databfile、sln file##
+ *.mdb  
+ *.ldb  
+ *.sln    
+ ##class file##
+ *.com  
+ *.class  
+ *.dll  
+ *.exe  
+ *.o
+ *.mat
+ *.txt
+ *.dat
+ *.atr
+##folder##
+DATASET
+
