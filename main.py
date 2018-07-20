@@ -2,6 +2,9 @@
 # python for manifold learning -- ECG classification
 import numpy as np
 import matplotlib
+
+from pyecgsignal.datasets.SimpleDataLoader import SimpleDataLoader
+
 matplotlib.use('Agg')
 import pyecgsignal
 import matplotlib.pyplot as plt
@@ -16,7 +19,7 @@ import argparse
 import os
 from sklearn import manifold
 
-from pyecgsignal.datasets import SimpleDataLoader
+
 
 # construct the argument parse and parse the arguments
 #ap = argparse.ArgumentParser()
@@ -24,24 +27,29 @@ from pyecgsignal.datasets import SimpleDataLoader
 #args = vars(ap.parse_args())
 
 
-print("[INFO] loading ECG (sample) dataset...")
-
 # initialize the class labels
 classLabels = ["Normal", "Supra-ventricular", "Ventricular", "Fusion"]
+
 #signalPath = args["dataset"]
-signalPath = "/Users/Yanyan/Documents/GITHUB/ecgClass/DATASET/MITBIH_Arrhythmia_MAT"
+signalPath = "/Users/Yanyan/Documents/GITHUB/ecgClass/DATASET/MITBIH_Arrhythmia_MAT/"
 # initial the list of data and labels
 data = []
 labels = []
 
 # load the mat files
-sdl = SimpleDatasetLoader()
+
+print("[INFO] loading ECG (sample) dataset...")
+sdl = SimpleDataLoader()
 frequency = 340
 (data, labels) = sdl.loadMAT(signalPath, frequency)
 
 # data augmentation
+print("[INFO] performing data augmentation...")
 
-
+# partition the data into training and testing splits using 80% of
+# the data for training and the remaining 20% for testing
+# (trainX, testX, trainY, testY) = train_test_split(data,
+# 	labels, test_size=0.20, stratify=labels, random_state=42)
 
 
 

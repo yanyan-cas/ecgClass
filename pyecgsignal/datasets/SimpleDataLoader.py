@@ -6,6 +6,7 @@ import scipy.signal as signal #import butter, lfilter, freqz
 import math
 from sklearn.preprocessing import normalize
 
+
 class SimpleDataLoader:
     def __init__(self, preprocessor = None):
         #store the preprocessor
@@ -16,16 +17,23 @@ class SimpleDataLoader:
         if self.preprocessor == None:
             self.preprocessor = []
 
-    def loadMAT(self, datamatPath, frequency, verbose = -1):
+    def loadMAT(self, datamatPath, frequency):
         #initialize the list of features and labels
         data = []
         labels = []
+        files = os.listdir(datamatPath)
+        files.sort()
 
+        print ('loadMAT',datamatPath, files)
         #loop over the input data files from the directory
-        for (num, matfile) in [os.listdir(datamatPath)]:
-
+        count = 0
+        for matfile in files:
+            if matfile.__contains__('DS'):
+                continue
             # load mat file from the folder
-            matData = scipy.io.loadmat(matfile)
+            print('loadMAT', matfile)
+            file = datamatPath + matfile
+            matData = scipy.io.loadmat(file)
             sampleContent = np.array(matData['M'])
             sampleRTime = np.array(matData['ATRTIME'])
             sampleTime = np.array(matData['TIME'])
@@ -38,31 +46,33 @@ class SimpleDataLoader:
             filtdata = self.ecgfilter(matdata, frequency)
 
             # signal pre-processing of normalization
-            normdata = self.ecgnormalize(filtdata)
+            # normdata = self.ecgnormalize(filtdata)
 
             # time series segmentation: separate the samples from continuous time series
             sampleRTime = sampleRTime[3:len(sampleRTime)]
-            rTime = round(frequency * sampleRTime) # using the R-wave positions
+            rTime = np.round(frequency * sampleRTime) # using the R-wave positions
             sampAnnote = sampAnnote[3:len(sampAnnote)]
             (frm_annot, filter_time) = self.annotfilt(sampAnnote, rTime) # remove the labels not used
 
             # loop over the single mat file in the directory
             wave = []
-            for (i, item) in filter_time:
-                j = i + 1
+            j = 0
+            for item in filter_time:
+                j = j + 1
 
                 # determine the signal duration
                 postime = filter_time[j+1] - filter_time[j]
                 pretime = filter_time[j] - filter_time[j-1]
 
                 if postime < 300 or pretime < 280:
-                    tmp = self.adoptwind(filter_time(j), pretime, postime, normdata)
+                    tmp = self.adoptwind(filter_time[j], pretime, postime, filtdata)
                 else:
-                    tmp = normdata[filter_time(j) - 140: filter_time(j) + 199, 1]
+                    tmp = filtdata[filter_time[j] - 140: filter_time[j] + 199, 1]
                 # data samples from one single mat file
                 wave.append(tmp)
                 # output info for data loading
-            print("[INFO] loading ECG dataset, file num = {}".format(num))
+            count += 1
+            print("[INFO] loading ECG dataset, file num = {}".format(count))
 
         # Append all the sample from a single file, to build the whole data set
         data.append(wave)
@@ -95,6 +105,8 @@ class SimpleDataLoader:
         wave[0:(139 - preselect)] = wave[139 - preselect]
         wave[(139 + postselect):340] = wave[139 + postselect]
 
+        return wave
+
     def annotfilt(self, sampAnnote, sampleRTime):
         # % We now just care about the annotations below 17,so we filter the annotations beyond 16
         # Mapping of MIT-BIH arrhythmia database heartbeat types to the AAMI heartbeat classes:
@@ -121,13 +133,15 @@ class SimpleDataLoader:
         # Ac_index = find [annot <= 13 or annot ==31 or annot == 34 or annot == 38]
 
         deleteIndex = []
-        for (i, annot) in sampAnnote:
+        count = -1
+        for annot in sampAnnote:
+            count = count + 1
             if ~((annot <= 13) or (annot ==31) or (annot == 34) or (annot == 38)):
-                deleteIndex.append(i)
+                deleteIndex.append(count)
 
-        for (i, index) in deleteIndex:
-            sampAnnote.pop(i)
-            sampleRTime.pop(i)
+        for index in deleteIndex:
+            sampAnnote.pop(index)
+            sampleRTime.pop(index)
 
         frm_annot = sampAnnote
         filter_time = sampleRTime
