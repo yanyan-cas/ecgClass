@@ -4,8 +4,8 @@ import numpy as np
 import scipy.io
 import scipy.signal as signal #import butter, lfilter, freqz
 import math
-from sklearn.preprocessing import normalize
-
+from sklearn import preprocessing
+import matplotlib.pyplot as plt
 
 class SimpleDataLoader:
     def __init__(self, preprocessor = None):
@@ -31,7 +31,7 @@ class SimpleDataLoader:
             if matfile.__contains__('DS'):
                 continue
             # load mat file from the folder
-            print('loadMAT', matfile)
+            print("[INFO] loading {} ...".format(matfile))
             file = datamatPath + matfile
             matData = scipy.io.loadmat(file)
             sampleContent = np.array(matData['M'])
@@ -40,19 +40,21 @@ class SimpleDataLoader:
             sampAnnote = np.array(matData['ANNOT'])
 
             # decide the channels used in the experiments
-            matdata = sampleContent[:,1] # for we use only the first lead temporally
+            matdata = sampleContent[:, 0] # for we use only the first lead temporally
 
             # digital filtering of signals
             filtdata = self.ecgfilter(matdata, frequency)
 
-            # signal pre-processing of normalization
-            # normdata = self.ecgnormalize(filtdata)
+            scaledata = self.ecgscale(filtdata)
+
 
             # time series segmentation: separate the samples from continuous time series
             sampleRTime = sampleRTime[3:len(sampleRTime)]
             rTime = np.round(frequency * sampleRTime) # using the R-wave positions
             sampAnnote = sampAnnote[3:len(sampAnnote)]
             (frm_annot, filter_time) = self.annotfilt(sampAnnote, rTime) # remove the labels not used
+
+
 
             # loop over the single mat file in the directory
             wave = []
@@ -65,12 +67,15 @@ class SimpleDataLoader:
                 pretime = filter_time[j] - filter_time[j-1]
 
                 if postime < 300 or pretime < 280:
-                    tmp = self.adoptwind(filter_time[j], pretime, postime, filtdata)
+                    tmp = self.adoptwind(filter_time[j], pretime, postime, scaledata)
                 else:
-                    tmp = filtdata[filter_time[j] - 140: filter_time[j] + 199, 1]
+                    tmp = scaledata[filter_time[j] - 140: filter_time[j] + 199, 1]
                 # data samples from one single mat file
                 wave.append(tmp)
                 # output info for data loading
+                plt.style.use("ggplot")
+                plt.figure()
+                plt.plot(wave)
             count += 1
             print("[INFO] loading ECG dataset, file num = {}".format(count))
 
@@ -96,14 +101,16 @@ class SimpleDataLoader:
 
     def adoptwind(self, time, pretime, postime, normdata):
         # each sample with 340 points
-        wave = np.zeros(340)
-        preselect = math.floor(pretime/2)
-        postselect = math.floor(postime * 2/3)
-        if preselect > 139: preselect = 139
-        if postselect > 200: postselect = 200
-        wave[(139 - preselect):(139 + postselect)] = normdata[(time - preselect - 1) : (time + postselect +1)]
-        wave[0:(139 - preselect)] = wave[139 - preselect]
-        wave[(139 + postselect):340] = wave[139 + postselect]
+        wave = np.empty([340, 1])
+        pre_select = math.floor(pretime/2)
+        post_select = math.floor(postime * 2/3)
+        if pre_select > 139: pre_select = 139
+        if post_select > 200: post_select = 200
+        # copy paste the middle part according to the r time
+        middle = normdata[(time - pre_select - 1) : (time + post_select +1), 0]
+        wave[(139 - pre_select):(139 + post_select), 0] = middle
+        wave[0:(139 - pre_select), 0] = wave[139 - pre_select, 0]
+        wave[(139 + post_select):340, 0] = wave[139 + post_select, 0]
 
         return wave
 
@@ -148,8 +155,14 @@ class SimpleDataLoader:
 
         return (frm_annot, filter_time)
 
-    def ecgnormalize(self, data):
-    #    normalize
-    #    mean = mean(data, 1)
-    #    std = 5 * std(data, 0, 1)
-        normalize
+
+    def ecgscale(self, data):
+
+        data = np.reshape(data, (-1, 1))
+        #print("[INFO] before normalization {} ...".format(np.amin(data)))
+        # signal pre-processing of normalization
+        min_max_scaler = preprocessing.MinMaxScaler()
+        data_minmax = min_max_scaler.fit_transform(data)
+        #print("[INFO] after normalization {} ...".format(np.amin(data_minmax)))
+
+        return data_minmax

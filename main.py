@@ -37,7 +37,6 @@ data = []
 labels = []
 
 # load the mat files
-
 print("[INFO] loading ECG (sample) dataset...")
 sdl = SimpleDataLoader()
 frequency = 340
@@ -46,10 +45,19 @@ frequency = 340
 # data augmentation
 print("[INFO] performing data augmentation...")
 
+
+
+# partition data sets
+print("[INFO] partition the data into training and testing splits...")
 # partition the data into training and testing splits using 80% of
 # the data for training and the remaining 20% for testing
 # (trainX, testX, trainY, testY) = train_test_split(data,
 # 	labels, test_size=0.20, stratify=labels, random_state=42)
+
+
+# pca
+
+
 
 
 
